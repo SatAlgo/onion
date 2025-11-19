@@ -1,0 +1,123 @@
+#include <iostream>
+#include <vector>
+#include <iomanip>
+#include <numeric> // For std::accumulate
+
+using namespace std;
+
+// This function checks if the system is in a safe state
+bool is_safe(
+    int num_processes, 
+    int num_resources, 
+    const vector<vector<int>>& alloc, // Allocation matrix
+    const vector<vector<int>>& need,  // Need matrix
+    vector<int> available              // Available vector (passed by value to modify locally)
+) {
+    // 1. Initialization
+    vector<bool> finish(num_processes, false); // Tracks if a process can finish
+    vector<int> safe_sequence(num_processes);
+    int count = 0; // Number of processes successfully finished
+
+    // 2. Safety Check Loop
+    // The loop continues as long as we can find at least one unfinished process that can run
+    while (count < num_processes) {
+        bool found_process = false;
+
+        for (int i = 0; i < num_processes; ++i) {
+            // Check if process 'i' is NOT finished AND if its 'Need' <= 'Available'
+            if (finish[i] == false) {
+                bool can_run = true;
+                
+                // Check if Need[i] <= Available
+                for (int r = 0; r < num_resources; ++r) {
+                    if (need[i][r] > available[r]) {
+                        can_run = false; // Cannot run, insufficient resources
+                        break;
+                    }
+                }
+
+                // 3. Execution (Simulated) and Resource Release
+                if (can_run) {
+                    // Simulate process execution: release allocated resources
+                    for (int r = 0; r < num_resources; ++r) {
+                        available[r] += alloc[i][r];
+                    }
+                    
+                    // Mark process as finished and record in the safe sequence
+                    finish[i] = true;
+                    safe_sequence[count] = i;
+                    count++;
+                    found_process = true; // We successfully ran one process
+                    break; // Restart the outer loop to find the next available process
+                }
+            }
+        }
+
+        // If no process was found in this entire pass, the system is NOT safe.
+        if (!found_process) {
+            cout << "\nSYSTEM STATE: UNSAFE (Cannot find a safe sequence)." << endl;
+            return false;
+        }
+    }
+
+    // 4. Success: If the loop completes, a safe sequence was found.
+    cout << "\nSYSTEM STATE: SAFE" << endl;
+    cout << "Safe Sequence: <";
+    for (int i = 0; i < num_processes; ++i) {
+        cout << "P" << safe_sequence[i];
+        if (i < num_processes - 1) cout << ", ";
+    }
+    cout << ">" << endl;
+    
+    return true;
+}
+
+int main() {
+    // --- Sample Input Data ---
+    const int P = 5; // Number of processes (P0 to P4)
+    const int R = 3; // Number of resource types (A, B, C)
+
+    // Resource Allocation Matrix (P x R)
+    vector<vector<int>> allocation = {
+        {0, 1, 0}, // P0
+        {2, 0, 0}, // P1
+        {3, 0, 2}, // P2
+        {2, 1, 1}, // P3
+        {0, 0, 2}  // P4
+    };
+
+    // Maximum Resource Needs Matrix (P x R)
+    vector<vector<int>> max_needs = {
+        {7, 5, 3}, // P0
+        {3, 2, 2}, // P1
+        {9, 0, 2}, // P2
+        {2, 2, 2}, // P3
+        {4, 3, 3}  // P4
+    };
+
+    // Available Resources Vector (R)
+    vector<int> available = {3, 3, 2}; // Available resources (A=3, B=3, C=2)
+    
+    // 1. Calculate the initial Need Matrix (Need = Max - Allocation)
+    vector<vector<int>> need(P, vector<int>(R));
+    for (int i = 0; i < P; ++i) {
+        for (int r = 0; r < R; ++r) {
+            need[i][r] = max_needs[i][r] - allocation[i][r];
+        }
+    }
+    
+    cout << "--- Banker's Algorithm: Safety Check ---" << endl;
+    cout << "Processes: " << P << ", Resources: " << R << endl;
+    cout << "Initial Available: A=" << available[0] << ", B=" << available[1] << ", C=" << available[2] << endl;
+
+    // Display Need Matrix (Optional, for verification)
+    cout << "\nNeed Matrix:" << endl;
+    for (int i = 0; i < P; ++i) {
+        cout << "P" << i << ": (" << need[i][0] << ", " << need[i][1] << ", " << need[i][2] << ")" << endl;
+    }
+
+    // 2. Execute the Safety Algorithm
+    is_safe(P, R, allocation, need, available);
+
+    return 0;
+}

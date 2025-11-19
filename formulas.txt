@@ -1,0 +1,5 @@
+completion time = start time + total burst time
+turn around time = completion time - arrival time
+waiting time = turn around time - burst time
+waiting time = start time - arrival time
+response time = start time - arrival time

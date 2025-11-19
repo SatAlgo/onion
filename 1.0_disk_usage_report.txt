@@ -1,0 +1,41 @@
+#!/bin/bash
+# Title: Disk Space Usage Reporter
+# Description: Displays total, used, available disk space, and usage percentage 
+#              for the root file system in a human-readable format.
+
+# --- Core Command: df -h ---
+# df: report file system disk space usage.
+# -h: human-readable format (e.g., 100G instead of bytes).
+
+echo -e "\n--- System Disk Usage Report ---"
+echo "Target: Root File System (/)"
+
+# Use df -h to get the data, then awk to filter and format.
+# 1. df -h output is piped.
+# 2. grep '^/' filters for lines starting with / (usually the main file systems).
+# 3. awk '{print $2, $3, $4, $5}' selects the specific columns: 
+#    $2 = Size (Total)
+#    $3 = Used
+#    $4 = Avail (Available)
+#    $5 = Use% (Usage Percentage)
+
+# Header
+echo -e "\n-----------------------------------------------------"
+printf "%-10s %-10s %-10s %-10s\n" "TOTAL" "USED" "AVAILABLE" "USAGE %"
+echo "-----------------------------------------------------"
+
+# Data extraction
+df -h | grep ' /$' | awk '{printf "%-10s %-10s %-10s %-10s\n", $2, $3, $4, $5}'
+
+echo -e "-----------------------------------------------------\n"
+
+# Optional: Add a conclusion based on usage
+USAGE_PERCENT=$(df / | tail -1 | awk '{print $5}' | sed 's/%//g')
+
+if [ "$USAGE_PERCENT" -gt 90 ]; then
+    echo "🚨 WARNING: Disk usage is over 90%. Consider cleaning up old files!"
+elif [ "$USAGE_PERCENT" -gt 75 ]; then
+    echo "⚠️ ALERT: Disk usage is over 75%. Monitor closely."
+else
+    echo "✅ STATUS: Disk space is healthy."
+fi

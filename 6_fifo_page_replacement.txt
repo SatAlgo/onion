@@ -1,0 +1,100 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <algorithm>
+#include <iomanip>
+
+using namespace std;
+
+// Function to run the FIFO Page Replacement Algorithm
+void run_fifo_simulation(const vector<int>& page_references, int num_frames) {
+    // Physical Memory Frames (The main storage for pages)
+    vector<int> frames; 
+    
+    // FIFO Queue (Tracks the order pages were loaded for replacement)
+    // The page at the front of this queue is the next one to be replaced.
+    queue<int> fifo_queue; 
+
+    int page_faults = 0;
+    int n = page_references.size();
+
+    cout << "\n--- FIFO Page Replacement Simulation ---" << endl;
+    cout << "Total References: " << n << ", Available Frames: " << num_frames << endl;
+    cout << "--------------------------------------------------------" << endl;
+
+    // Output Header
+    cout << left << setw(10) << "Reference" << " | ";
+    for (int i = 0; i < num_frames; ++i) {
+        cout << setw(5) << "Frame" + to_string(i+1);
+    }
+    cout << " | " << "Fault?" << endl;
+    cout << "--------------------------------------------------------" << endl;
+
+    // Iterate through the Page Reference String (Demand Paging)
+    for (int page : page_references) {
+        // --- Demand Paging / Page Fault Check ---
+        
+        // Check if the page is already in a frame (Page Hit)
+        bool page_hit = (find(frames.begin(), frames.end(), page) != frames.end());
+
+        cout << left << setw(10) << page << " | ";
+
+        if (page_hit) {
+            // Page Hit: Do nothing, just continue
+            
+        } else {
+            // Page Fault! Must load the page from disk.
+            page_faults++;
+            
+            // --- Page Replacement Logic (FIFO) ---
+            if (frames.size() < num_frames) {
+                // Case 1: Frames are NOT full (Initial Demand Paging)
+                // Load the new page into the first available frame.
+                frames.push_back(page);
+                fifo_queue.push(page); // Track the order
+                
+            } else {
+                // Case 2: Frames ARE full (True Replacement)
+                // Find the page that has been in memory the LONGEST (FIFO rule)
+                int page_to_replace = fifo_queue.front();
+                fifo_queue.pop(); // Remove the page from the replacement queue
+
+                // Find and replace the page in the frames vector
+                auto it = find(frames.begin(), frames.end(), page_to_replace);
+                if (it != frames.end()) {
+                    *it = page; // Replace the old page with the new one
+                }
+                
+                // Add the new page to the back of the queue
+                fifo_queue.push(page);
+            }
+        }
+
+        // --- Output Current Frame State ---
+        for (int frame_page : frames) {
+            cout << setw(5) << frame_page;
+        }
+        // Fill remaining empty frame spots with dashes for clarity
+        for (size_t i = frames.size(); i < num_frames; ++i) {
+            cout << setw(5) << "-";
+        }
+
+        cout << " | " << (page_hit ? "NO" : "YES") << endl;
+    }
+
+    cout << "--------------------------------------------------------" << endl;
+    cout << "Final Total Page Faults: " << page_faults << endl;
+    cout << "Total Hits: " << n - page_faults << endl;
+}
+
+int main() {
+    // Input 1: The sequence of pages accessed by the process
+    vector<int> page_references = {7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2, 1, 2, 0, 1, 7, 0, 1};
+    
+    // Input 2: The number of available physical memory frames (M)
+    int num_frames = 3; 
+
+    run_fifo_simulation(page_references, num_frames);
+
+    return 0;
+}

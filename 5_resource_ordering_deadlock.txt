@@ -1,0 +1,74 @@
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <chrono>
+#include <vector>
+
+using namespace std;
+
+// 1. Define the Resources (using mutexes to represent resources)
+// Resources are given an explicit order:
+mutex R1_Low_Order;  // Order 1 (Lowest/First)
+mutex R2_High_Order; // Order 2 (Highest/Second)
+
+// --- Deadlock Prevention Logic ---
+
+// The critical rule is enforced inside this function:
+// Processes MUST request R1 first, then R2.
+void safe_process(int id) {
+    cout << "Process P" << id << ": Starting..." << endl;
+
+    // STEP 1: Request Resource R1 (Low Order)
+    cout << "Process P" << id << ": Requesting R1 (Order 1)..." << endl;
+    
+    // Acquire the lock for R1
+    unique_lock<mutex> lock1(R1_Low_Order);
+    
+    cout << "Process P" << id << ": ACQUIRED R1. Holding it..." << endl;
+    this_thread::sleep_for(chrono::milliseconds(200)); // Simulate work while holding R1
+
+    // STEP 2: Request Resource R2 (High Order)
+    // The rule (R1 must be acquired before R2) is guaranteed by the code structure.
+    cout << "Process P" << id << ": Requesting R2 (Order 2)..." << endl;
+    
+    // Acquire the lock for R2
+    unique_lock<mutex> lock2(R2_High_Order);
+    
+    cout << "Process P" << id << ": ACQUIRED R2. Critical section running." << endl;
+    this_thread::sleep_for(chrono::milliseconds(500)); // Simulate critical section
+
+    // Resources are automatically released when the locks go out of scope.
+    // lock2 releases R2, lock1 releases R1.
+
+    cout << "Process P" << id << ": Finished and released R1 and R2." << endl;
+}
+
+// --- Deadlock Scenario (For comparison - DO NOT RUN IN LAB) ---
+// This function demonstrates what would cause deadlock if the ordering rule was broken.
+void unsafe_process_A() {
+    // Process A tries to get R1 then R2
+    // safe_process(1) // would call this logic
+}
+void unsafe_process_B() {
+    // Process B tries to get R2 then R1
+    // This is the source of the circular wait: A waits for R2 held by B; B waits for R1 held by A.
+}
+
+
+int main() {
+    cout << "--- Resource Ordering Deadlock Prevention Demo ---" << endl;
+    cout << "Goal: Prevent Circular Wait by enforcing R1 request BEFORE R2 request." << endl;
+    
+    // Launch two threads that follow the safe resource ordering rule
+    thread P1(safe_process, 1);
+    thread P2(safe_process, 2);
+
+    P1.join();
+    P2.join();
+
+    cout << "\nRESULT: Deadlock was successfully prevented." << endl;
+    cout << "The threads ran sequentially (P1 finished, then P2 started, or vice-versa) "
+         << "or concurrently, but never blocked each other indefinitely." << endl;
+
+    return 0;
+}

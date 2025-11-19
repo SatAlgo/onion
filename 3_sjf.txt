@@ -1,0 +1,82 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <iomanip>
+#include <limits>
+
+using namespace std;
+
+void sjf_scheduling_simple() {
+    // Input Data (Parallel Vectors)
+    vector<int> pid = {1, 2, 3, 4}; // Process ID
+    vector<int> arrival = {0, 1, 2, 3}; // Arrival Time
+    vector<int> burst = {8, 4, 9, 5}; // Burst Time
+    int n = pid.size();
+
+    // Calculated Results (Parallel Vectors)
+    vector<int> completion(n);
+    vector<int> turnaround(n);
+    vector<int> waiting(n);
+    vector<bool> is_completed(n, false);
+
+    int current_time = 0;
+    int processes_completed = 0;
+    double total_wait = 0;
+    double total_turnaround = 0;
+
+    // Main Scheduling Loop
+    while (processes_completed < n) {
+        int shortest_burst = numeric_limits<int>::max();
+        int best_index = -1;
+
+        // Find the shortest job that has arrived and is not done
+        for (int i = 0; i < n; ++i) {
+            if (arrival[i] <= current_time && !is_completed[i]) {
+                if (burst[i] < shortest_burst) {
+                    shortest_burst = burst[i];
+                    best_index = i;
+                }
+            }
+        }
+
+        if (best_index == -1) {
+            // CPU is idle, advance time
+            current_time++;
+            continue;
+        }
+
+        // Execute the selected process (Non-preemptive: execute fully)
+        int i = best_index;
+
+        completion[i] = current_time + burst[i];
+        turnaround[i] = completion[i] - arrival[i];
+        waiting[i] = turnaround[i] - burst[i];
+
+        is_completed[i] = true;
+        current_time = completion[i];
+        processes_completed++;
+
+        total_wait += waiting[i];
+        total_turnaround += turnaround[i];
+    }
+
+    // Display Results
+    cout << "\n--- SJF Scheduling Results ---" << endl;
+    cout << left << setw(5) << "PID" << setw(10) << "Arrival" << setw(8) << "Burst"
+         << setw(12) << "Completion" << setw(12) << "Turnaround" << setw(8) << "Wait" << endl;
+    cout << "---------------------------------------------------------" << endl;
+
+    for (int i = 0; i < n; ++i) {
+        cout << left << setw(5) << pid[i] << setw(10) << arrival[i] << setw(8) << burst[i]
+             << setw(12) << completion[i] << setw(12) << turnaround[i] << setw(8) << waiting[i] << endl;
+    }
+
+    cout << fixed << setprecision(2);
+    cout << "\nAverage Waiting Time: " << total_wait / n << endl;
+    cout << "Average Turnaround Time: " << total_turnaround / n << endl;
+}
+
+int main() {
+    sjf_scheduling_simple();
+    return 0;
+}
